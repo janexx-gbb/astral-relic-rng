@@ -1,0 +1,1751 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Astral Relic — Celestial RNG & Gacha Simulator</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            display: ['Cinzel', 'serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            void: '#070913',
+            twilight: '#0d1224',
+            nebula: '#151c38',
+            starlight: '#e2e8f0',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    * {
+      box-sizing: border-box;
+      user-select: none;
+    }
+
+    body {
+      background: radial-gradient(circle at 50% 0%, #172042 0%, #0b0f21 48%, #05070f 100%);
+      color: #f1f5f9;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.5);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(148, 163, 184, 0.25);
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(148, 163, 184, 0.45);
+    }
+
+    /* Glass Panels */
+    .glass-panel {
+      background: rgba(15, 22, 44, 0.68);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(148, 163, 184, 0.14);
+      box-shadow: 0 12px 35px -10px rgba(0, 0, 0, 0.65);
+    }
+
+    .glass-card {
+      background: linear-gradient(145deg, rgba(24, 34, 66, 0.72), rgba(12, 17, 36, 0.85));
+      border: 1px solid rgba(148, 163, 184, 0.15);
+      transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    .glass-card:hover {
+      transform: translateY(-2px);
+    }
+
+    /* Cosmic Buttons */
+    .btn-cosmic {
+      background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #9333ea 100%);
+      box-shadow: 0 0 22px rgba(124, 58, 237, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+      transition: all 0.18s ease;
+    }
+    .btn-cosmic:hover:not(:disabled) {
+      filter: brightness(1.12);
+      transform: translateY(-1px);
+      box-shadow: 0 0 30px rgba(139, 92, 246, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+    }
+    .btn-cosmic:active:not(:disabled) {
+      transform: translateY(1px) scale(0.98);
+    }
+    .btn-cosmic:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .btn-celestial {
+      background: linear-gradient(135deg, #0284c7 0%, #2563eb 50%, #4f46e5 100%);
+      box-shadow: 0 0 20px rgba(37, 99, 235, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+      transition: all 0.18s ease;
+    }
+    .btn-celestial:hover:not(:disabled) {
+      filter: brightness(1.12);
+      transform: translateY(-1px);
+      box-shadow: 0 0 28px rgba(56, 189, 248, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+    }
+    .btn-celestial:active:not(:disabled) {
+      transform: translateY(1px) scale(0.98);
+    }
+    .btn-celestial:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    /* Animations */
+    @keyframes floatSlow {
+      0%, 100% { transform: translateY(0px) rotate(0deg); }
+      50% { transform: translateY(-8px) rotate(2deg); }
+    }
+    .animate-float {
+      animation: floatSlow 4s ease-in-out infinite;
+    }
+
+    @keyframes spinSlow {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    .animate-spin-slow {
+      animation: spinSlow 24s linear infinite;
+    }
+    .animate-spin-reverse {
+      animation: spinSlow 32s linear infinite reverse;
+    }
+
+    @keyframes revealPop {
+      0% { opacity: 0; transform: scale(0.65) translateY(16px); filter: blur(6px); }
+      70% { opacity: 1; transform: scale(1.04) translateY(-2px); filter: blur(0px); }
+      100% { opacity: 1; transform: scale(1) translateY(0px); filter: blur(0px); }
+    }
+    .animate-reveal {
+      animation: revealPop 0.42s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    @keyframes screenShake {
+      0%, 100% { transform: translate(0, 0) rotate(0deg); }
+      15% { transform: translate(-6px, -4px) rotate(-0.6deg); }
+      30% { transform: translate(6px, 3px) rotate(0.6deg); }
+      45% { transform: translate(-5px, 4px) rotate(-0.4deg); }
+      60% { transform: translate(5px, -3px) rotate(0.4deg); }
+      75% { transform: translate(-3px, 2px) rotate(-0.2deg); }
+    }
+    .shake-effect {
+      animation: screenShake 0.48s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+    }
+
+    @keyframes flashOverlay {
+      0% { opacity: 0.78; }
+      100% { opacity: 0; }
+    }
+    .flash-active {
+      animation: flashOverlay 0.65s ease-out forwards;
+    }
+
+    @keyframes pulseRing {
+      0% { transform: scale(0.85); opacity: 0.75; }
+      100% { transform: scale(1.45); opacity: 0; }
+    }
+    .aura-ring {
+      animation: pulseRing 2.4s cubic-bezier(0.24, 0, 0.38, 1) infinite;
+    }
+
+    /* Silhouette for Undiscovered Codex Items */
+    .silhouette-icon svg {
+      filter: brightness(0) invert(0.18) drop-shadow(0 0 6px rgba(148, 163, 184, 0.12));
+      opacity: 0.7;
+    }
+
+    /* Rarity Aura Glows */
+    .rarity-common { --r-color: #94a3b8; --r-glow: rgba(148, 163, 184, 0.25); }
+    .rarity-uncommon { --r-color: #34d399; --r-glow: rgba(52, 211, 153, 0.32); }
+    .rarity-rare { --r-color: #38bdf8; --r-glow: rgba(56, 189, 248, 0.38); }
+    .rarity-epic { --r-color: #c084fc; --r-glow: rgba(192, 132, 252, 0.45); }
+    .rarity-legendary { --r-color: #fbbf24; --r-glow: rgba(251, 191, 36, 0.52); }
+    .rarity-mythic { --r-color: #fb7185; --r-glow: rgba(251, 113, 133, 0.62); }
+    .rarity-celestial { --r-color: #22d3ee; --r-glow: rgba(34, 211, 238, 0.72); }
+    .rarity-secret { --r-color: #f472b6; --r-glow: rgba(244, 114, 182, 0.85); }
+
+    .rarity-border {
+      border-color: var(--r-color) !important;
+      box-shadow: 0 0 22px var(--r-glow), inset 0 0 14px var(--r-glow);
+    }
+  </style>
+</head>
+<body class="antialiased selection:bg-indigo-500 selection:text-white">
+
+  <!-- Background Cosmic Canvas -->
+  <canvas id="cosmic-canvas" class="fixed inset-0 w-full h-full pointer-events-none z-0"></canvas>
+
+  <!-- Rare Pull Screen Flash Overlay -->
+  <div id="screen-flash" class="fixed inset-0 pointer-events-none z-50 opacity-0 bg-white"></div>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 max-w-xs w-full pointer-events-none"></div>
+
+  <!-- Main App Wrapper -->
+  <div id="app-wrapper" class="relative z-10 max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-6 flex flex-col gap-5">
+
+    <!-- Top Header & Live Stats Bar -->
+    <header class="glass-panel rounded-2xl p-4 sm:p-5 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-indigo-500 via-purple-600 to-cyan-500 p-0.5 shadow-lg shadow-indigo-500/30 flex-shrink-0">
+            <div class="w-full h-full bg-slate-950/90 rounded-[10px] flex items-center justify-center">
+              <svg class="w-6 h-6 text-cyan-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                <circle cx="12" cy="12" r="3" fill="currentColor" opacity="0.4"/>
+              </svg>
+            </div>
+          </div>
+          <div>
+            <h1 class="font-display text-xl sm:text-2xl font-bold tracking-wide bg-gradient-to-r from-white via-indigo-200 to-cyan-200 bg-clip-text text-transparent">
+              ASTRAL RELIC
+            </h1>
+            <p class="text-xs text-slate-400">Celestial RNG &amp; Relic Summoner</p>
+          </div>
+        </div>
+
+        <!-- Mobile Quick Action Buttons -->
+        <div class="flex items-center gap-2 lg:hidden">
+          <button id="btn-odds-mobile" class="p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/70 text-slate-200 text-xs font-medium" title="Probability Odds">
+            Odds
+          </button>
+          <button id="btn-sound-mobile" class="p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/70 text-slate-200" title="Toggle Sound">
+            <span class="sound-icon">🔊</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Live Stats Grid -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 flex-1 lg:max-w-3xl">
+        <!-- Total Rolls -->
+        <div class="bg-slate-900/70 border border-slate-800/90 rounded-xl px-3.5 py-2.5">
+          <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Total Rolls</div>
+          <div id="stat-total-rolls" class="font-mono text-base sm:text-lg font-bold text-white mt-0.5">0</div>
+        </div>
+
+        <!-- Effective Luck -->
+        <div class="bg-slate-900/70 border border-slate-800/90 rounded-xl px-3.5 py-2.5 relative overflow-hidden">
+          <div class="flex items-center justify-between">
+            <span class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Current Luck</span>
+            <span id="potion-badge" class="hidden text-[10px] px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-mono">2x POTION</span>
+          </div>
+          <div id="stat-luck" class="font-mono text-base sm:text-lg font-bold text-emerald-400 mt-0.5">1.00x</div>
+        </div>
+
+        <!-- Stardust Currency -->
+        <div class="bg-slate-900/70 border border-slate-800/90 rounded-xl px-3.5 py-2.5">
+          <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Stardust</div>
+          <div class="flex items-center gap-1.5 mt-0.5">
+            <span class="text-amber-400 text-sm">✦</span>
+            <span id="stat-stardust" class="font-mono text-base sm:text-lg font-bold text-amber-300">0</span>
+          </div>
+        </div>
+
+        <!-- Best Pull Ever -->
+        <div class="bg-slate-900/70 border border-slate-800/90 rounded-xl px-3.5 py-2.5">
+          <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Best Pull Ever</div>
+          <div id="stat-best-pull" class="text-xs sm:text-sm font-bold text-slate-300 truncate mt-1">None yet</div>
+        </div>
+      </div>
+
+      <!-- Desktop Utility Buttons -->
+      <div class="hidden lg:flex items-center gap-2">
+        <button id="btn-odds-desktop" class="px-3.5 py-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/70 text-slate-200 text-xs font-semibold flex items-center gap-1.5 transition">
+          <svg class="w-4 h-4 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+          </svg>
+          Odds Table
+        </button>
+        <button id="btn-sound-desktop" class="p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/70 text-slate-200 transition" title="Toggle Audio Effects">
+          <span class="sound-icon">🔊</span>
+        </button>
+        <button id="btn-reset-save" class="p-2.5 rounded-xl bg-slate-800/80 hover:bg-rose-950/70 border border-slate-700/70 hover:border-rose-500/50 text-slate-400 hover:text-rose-300 transition" title="Reset Progress">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Content Grid: Summon Stage + Live Feed -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+
+      <!-- Left/Center: Summoning Altar (8 cols) -->
+      <section class="lg:col-span-8 glass-panel rounded-2xl p-4 sm:p-6 flex flex-col justify-between relative overflow-hidden">
+        <!-- Decorative Celestial Rings -->
+        <div class="absolute inset-0 flex items-center justify-center pointer-events-none opacity-20">
+          <div class="w-72 h-72 sm:w-96 sm:h-96 rounded-full border border-dashed border-indigo-400 animate-spin-slow"></div>
+          <div class="absolute w-52 h-52 sm:w-72 sm:h-72 rounded-full border border-cyan-400/50 animate-spin-reverse"></div>
+        </div>
+
+        <!-- Top Altar Status Bar -->
+        <div class="relative z-10 flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-800/80">
+          <div class="flex items-center gap-2">
+            <span id="status-dot" class="w-2.5 h-2.5 rounded-full bg-indigo-400"></span>
+            <span id="altar-status-text" class="text-xs font-medium text-slate-300">Ready to channel the cosmos</span>
+          </div>
+
+          <!-- Active Boosts Pill -->
+          <div id="active-boosts-bar" class="flex items-center gap-2 text-xs">
+            <span id="potion-timer-text" class="hidden px-2.5 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-mono">
+              🍀 Luck Potion: 00s
+            </span>
+            <span id="charm-badge" class="hidden px-2.5 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 font-mono">
+              ✨ Astral Charm (+25% Luck)
+            </span>
+          </div>
+        </div>
+
+        <!-- Central Display Stage -->
+        <div id="summon-stage" class="relative z-10 my-4 sm:my-6 min-h-[260px] sm:min-h-[300px] flex flex-col items-center justify-center">
+          <!-- Initial Idle State -->
+          <div id="stage-idle" class="text-center flex flex-col items-center gap-3 max-w-md px-4">
+            <div class="w-24 h-24 rounded-full bg-indigo-500/10 border border-indigo-400/30 flex items-center justify-center animate-float shadow-[0_0_40px_rgba(99,102,241,0.25)]">
+              <svg class="w-12 h-12 text-indigo-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <circle cx="12" cy="12" r="9" stroke-dasharray="3 3"/>
+                <polygon points="12 5 14.5 10 20 10.5 15.8 14.2 17 19.5 12 16.6 7 19.5 8.2 14.2 4 10.5 9.5 10 12 5" fill="currentColor" fill-opacity="0.2"/>
+              </svg>
+            </div>
+            <h2 class="font-display text-lg sm:text-xl font-bold text-slate-100">The Astral Conduit Awaits</h2>
+            <p class="text-xs sm:text-sm text-slate-400 leading-relaxed">
+              Invoke a single star or unleash a multi-summon to discover relics ranging from <span class="text-slate-300 font-medium">Common (1 in 2)</span> to <span class="text-pink-400 font-semibold">Secret (1 in 50,000)</span>.
+            </p>
+          </div>
+
+          <!-- Single Pull Reveal Card -->
+          <div id="stage-single" class="hidden w-full max-w-sm flex flex-col items-center"></div>
+
+          <!-- Multi Pull Grid Reveal -->
+          <div id="stage-multi" class="hidden w-full grid grid-cols-2 sm:grid-cols-5 gap-2.5"></div>
+        </div>
+
+        <!-- Roll Controls & Auto-Roll Settings -->
+        <div class="relative z-10 flex flex-col gap-3 pt-3 border-t border-slate-800/80">
+          <!-- Primary Action Buttons -->
+          <div class="grid grid-cols-1 sm:grid-cols-12 gap-2.5">
+            <button id="btn-roll-one" class="sm:col-span-5 btn-celestial py-3.5 px-4 rounded-xl font-bold text-sm sm:text-base text-white flex items-center justify-center gap-2 cursor-pointer">
+              <span>✦ Roll 1x</span>
+              <span class="text-xs font-normal text-sky-200 opacity-85">[Space]</span>
+            </button>
+
+            <button id="btn-roll-multi" class="sm:col-span-5 btn-cosmic py-3.5 px-4 rounded-xl font-bold text-sm sm:text-base text-white flex items-center justify-center gap-2 cursor-pointer">
+              <span>✧ Multi-Roll (<span id="multi-count-label">10</span>x)</span>
+            </button>
+
+            <button id="btn-auto-roll" class="sm:col-span-2 py-3.5 px-3 rounded-xl font-bold text-xs sm:text-sm bg-slate-800/90 hover:bg-slate-700/90 border border-slate-600/70 text-slate-200 flex items-center justify-center gap-1.5 transition cursor-pointer">
+              <span id="auto-dot" class="w-2 h-2 rounded-full bg-slate-500"></span>
+              <span id="auto-label">Auto</span>
+            </button>
+          </div>
+
+          <!-- Auto-Roll & Animation Options Bar -->
+          <div class="flex flex-wrap items-center justify-between gap-3 bg-slate-950/60 border border-slate-800/80 rounded-xl px-3.5 py-2.5 text-xs">
+            <div class="flex flex-wrap items-center gap-4">
+              <!-- Skip Animation Toggle -->
+              <label class="flex items-center gap-2 cursor-pointer text-slate-300 hover:text-white">
+                <input type="checkbox" id="chk-skip-anim" class="w-4 h-4 rounded accent-indigo-500 bg-slate-800 border-slate-600 cursor-pointer" />
+                <span>Skip Animation</span>
+              </label>
+
+              <!-- Stop on Rare Toggle -->
+              <label class="flex items-center gap-2 cursor-pointer text-slate-300 hover:text-white">
+                <input type="checkbox" id="chk-stop-rare" checked class="w-4 h-4 rounded accent-rose-500 bg-slate-800 border-slate-600 cursor-pointer" />
+                <span>Pause Auto on <span class="text-rose-400 font-semibold">Mythic+</span></span>
+              </label>
+            </div>
+
+            <!-- Auto Speed Selector -->
+            <div class="flex items-center gap-2">
+              <span class="text-slate-400">Auto Speed:</span>
+              <select id="select-auto-speed" class="bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-slate-200 font-mono text-xs focus:outline-none focus:border-indigo-500">
+                <option value="900">Normal (0.9s)</option>
+                <option value="450" selected>Fast (0.45s)</option>
+                <option value="180">Hyper (0.18s)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right: Live Roll History Feed (4 cols) -->
+      <aside class="lg:col-span-4 glass-panel rounded-2xl p-4 sm:p-5 flex flex-col h-[420px] lg:h-auto">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-800/80">
+          <div class="flex items-center gap-2">
+            <svg class="w-4 h-4 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <h3 class="font-semibold text-sm text-slate-200">Live Summon Feed</h3>
+          </div>
+          <span id="feed-count" class="text-[11px] font-mono text-slate-400">Last 40 pulls</span>
+        </div>
+
+        <div id="roll-history-list" class="flex-1 overflow-y-auto mt-3 space-y-2 pr-1">
+          <div class="text-center text-xs text-slate-500 py-12">
+            No summons recorded yet. Roll to begin!
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <!-- Bottom Section: Navigation Tabs (Inventory, Codex, Salvage & Upgrades) -->
+    <section class="glass-panel rounded-2xl p-4 sm:p-6">
+      <!-- Tabs Header -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-800/90">
+        <div class="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
+          <button data-tab="inventory" class="tab-btn active px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition flex items-center gap-2 bg-indigo-600 text-white shadow-lg shadow-indigo-600/25">
+            <span>🎒 Inventory</span>
+            <span id="tab-inv-count" class="px-1.5 py-0.5 text-[10px] rounded-md bg-black/30 font-mono">0</span>
+          </button>
+
+          <button data-tab="codex" class="tab-btn px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition flex items-center gap-2 bg-slate-800/70 text-slate-300 hover:bg-slate-800">
+            <span>📖 Codex Index</span>
+            <span id="tab-codex-count" class="px-1.5 py-0.5 text-[10px] rounded-md bg-black/30 font-mono">0/24</span>
+          </button>
+
+          <button data-tab="shop" class="tab-btn px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition flex items-center gap-2 bg-slate-800/70 text-slate-300 hover:bg-slate-800">
+            <span>⚒️ Salvage &amp; Upgrades</span>
+          </button>
+        </div>
+
+        <!-- Quick Salvage Duplicates Button -->
+        <button id="btn-salvage-dupes" class="px-3.5 py-2 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer">
+          <span>✦ Salvage Unlocked Dupes</span>
+          <span id="dupe-value-preview" class="font-mono text-amber-200">(+0)</span>
+        </button>
+      </div>
+
+      <!-- TAB 1: INVENTORY -->
+      <div id="panel-inventory" class="tab-panel mt-4">
+        <!-- Filters & Sort Controls -->
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+          <div class="flex items-center gap-2 flex-wrap">
+            <select id="inv-filter-rarity" class="bg-slate-900/90 border border-slate-700/80 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500">
+              <option value="all">All Rarities</option>
+              <option value="common">Common</option>
+              <option value="uncommon">Uncommon</option>
+              <option value="rare">Rare</option>
+              <option value="epic">Epic</option>
+              <option value="legendary">Legendary</option>
+              <option value="mythic">Mythic</option>
+              <option value="celestial">Celestial</option>
+              <option value="secret">Secret</option>
+            </select>
+
+            <select id="inv-sort" class="bg-slate-900/90 border border-slate-700/80 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500">
+              <option value="rarity-desc">Sort: Rarest First</option>
+              <option value="rarity-asc">Sort: Common First</option>
+              <option value="qty-desc">Sort: Highest Quantity</option>
+            </select>
+          </div>
+
+          <p class="text-xs text-slate-400">
+            Tip: Click the <span class="text-slate-200">🔒 lock icon</span> on any relic to protect it from salvaging.
+          </p>
+        </div>
+
+        <!-- Inventory Grid -->
+        <div id="inventory-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3"></div>
+      </div>
+
+      <!-- TAB 2: COLLECTION CODEX -->
+      <div id="panel-codex" class="tab-panel hidden mt-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4 bg-slate-900/60 border border-slate-800 rounded-xl p-3.5">
+          <div>
+            <h4 class="text-sm font-semibold text-white">Astral Relic Compendium</h4>
+            <p class="text-xs text-slate-400">Discover all 24 celestial relics across 8 rarity tiers. Undiscovered relics appear as astral silhouettes.</p>
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="w-36 h-2.5 bg-slate-800 rounded-full overflow-hidden">
+              <div id="codex-progress-bar" class="h-full bg-gradient-to-r from-indigo-500 to-cyan-400 transition-all duration-300" style="width: 0%"></div>
+            </div>
+            <span id="codex-progress-pct" class="font-mono text-xs font-bold text-cyan-300">0%</span>
+          </div>
+        </div>
+
+        <div id="codex-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3"></div>
+      </div>
+
+      <!-- TAB 3: SALVAGE & UPGRADES SHOP -->
+      <div id="panel-shop" class="tab-panel hidden mt-4 space-y-6">
+        <!-- Permanent Upgrades -->
+        <div>
+          <h4 class="text-sm font-display font-bold uppercase tracking-wider text-indigo-300 mb-3">Permanent Astral Upgrades</h4>
+          <div id="upgrades-grid" class="grid grid-cols-1 md:grid-cols-3 gap-4"></div>
+        </div>
+
+        <!-- Consumables & Crafting -->
+        <div>
+          <h4 class="text-sm font-display font-bold uppercase tracking-wider text-cyan-300 mb-3">Alchemy &amp; Relic Crafting</h4>
+          <div id="crafting-grid" class="grid grid-cols-1 md:grid-cols-3 gap-4"></div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- MODAL: PROBABILITY ODDS TABLE -->
+  <div id="modal-odds" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/75 backdrop-blur-sm">
+    <div class="glass-panel rounded-2xl max-w-2xl w-full max-h-[88vh] flex flex-col overflow-hidden border border-slate-700/80">
+      <div class="p-4 sm:p-5 border-b border-slate-800 flex items-center justify-between">
+        <div>
+          <h3 class="font-display text-lg font-bold text-white">Celestial Probability Table</h3>
+          <p class="text-xs text-slate-400">Base odds scale dynamically with your Current Luck multiplier (<span id="modal-luck-display" class="text-emerald-400 font-mono">1.00x</span>)</p>
+        </div>
+        <button id="btn-close-odds" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300">✕</button>
+      </div>
+      <div class="p-4 sm:p-5 overflow-y-auto space-y-2.5" id="odds-table-body"></div>
+    </div>
+  </div>
+
+  <!-- MODAL: CONFIRM RESET -->
+  <div id="modal-reset" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/75 backdrop-blur-sm">
+    <div class="glass-panel rounded-2xl max-w-md w-full p-5 border border-rose-500/40">
+      <h3 class="font-display text-lg font-bold text-rose-300">Reset All Progress?</h3>
+      <p class="text-xs sm:text-sm text-slate-300 mt-2 leading-relaxed">
+        This will permanently erase your discovered relics, Stardust, upgrades, and roll history. Are you sure you want to start over?
+      </p>
+      <div class="mt-5 flex items-center justify-end gap-2.5">
+        <button id="btn-cancel-reset" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200">Cancel</button>
+        <button id="btn-confirm-reset" class="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-xs font-semibold text-white">Yes, Reset Everything</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /**
+     * ASTRAL RELIC — CELESTIAL RNG & GACHA SIMULATOR
+     * Single-file self-contained architecture with procedural Web Audio SFX,
+     * dynamic cosmic canvas particles, weighted luck-adjusted RNG engine,
+     * Codex index, Inventory locking, and Salvage/Upgrade economy.
+     */
+
+    // ==========================================
+    // 1. RARITY TIERS & ITEM POOL CONFIGURATION
+    // ==========================================
+    const RARITIES = [
+      { id: 'common',    name: 'Common',    denom: 2,     color: '#94a3b8', bg: 'rgba(148,163,184,0.14)', border: 'rgba(148,163,184,0.45)', dust: 2,    rank: 1 },
+      { id: 'uncommon',  name: 'Uncommon',  denom: 5,     color: '#34d399', bg: 'rgba(52,211,153,0.14)',  border: 'rgba(52,211,153,0.5)',   dust: 6,    rank: 2 },
+      { id: 'rare',      name: 'Rare',      denom: 15,    color: '#38bdf8', bg: 'rgba(56,189,248,0.15)',  border: 'rgba(56,189,248,0.55)',  dust: 18,   rank: 3 },
+      { id: 'epic',      name: 'Epic',      denom: 50,    color: '#c084fc', bg: 'rgba(192,132,252,0.16)', border: 'rgba(192,132,252,0.6)',  dust: 55,   rank: 4 },
+      { id: 'legendary', name: 'Legendary', denom: 250,   color: '#fbbf24', bg: 'rgba(251,191,36,0.18)',  border: 'rgba(251,191,36,0.68)',  dust: 240,  rank: 5 },
+      { id: 'mythic',    name: 'Mythic',    denom: 1500,  color: '#fb7185', bg: 'rgba(251,113,133,0.20)', border: 'rgba(251,113,133,0.75)', dust: 1200, rank: 6 },
+      { id: 'celestial', name: 'Celestial', denom: 10000, color: '#22d3ee', bg: 'rgba(34,211,238,0.22)',  border: 'rgba(34,211,238,0.85)',  dust: 6500, rank: 7 },
+      { id: 'secret',    name: 'Secret',    denom: 50000, color: '#f472b6', bg: 'rgba(244,114,182,0.25)', border: 'rgba(244,114,182,0.95)', dust: 25000,rank: 8 }
+    ];
+
+    const RARITY_MAP = Object.fromEntries(RARITIES.map(r => [r.id, r]));
+
+    // Custom SVG Generator for Crisp Celestial Artifacts
+    function getRelicSVG(shape, color) {
+      const icons = {
+        pebble: `<svg viewBox="0 0 64 64" class="w-full h-full"><circle cx="32" cy="34" r="16" fill="${color}" fill-opacity="0.22" stroke="${color}" stroke-width="2.5"/><path d="M24 28c3-4 11-5 15-1" stroke="${color}" stroke-width="2" stroke-linecap="round"/></svg>`,
+        spark: `<svg viewBox="0 0 64 64" class="w-full h-full"><path d="M32 10L37 27L54 32L37 37L32 54L27 37L10 32L27 27Z" fill="${color}" fill-opacity="0.25" stroke="${color}" stroke-width="2.5" stroke-linejoin="round"/></svg>`,
+        feather: `<svg viewBox="0 0 64 64" class="w-full h-full"><path d="M46 14C34 14 20 26 18 46L14 50M22 42C34 42 46 30 46 14Z" fill="${color}" fill-opacity="0.22" stroke="${color}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+        leaf: `<svg viewBox="0 0 64 64" class="w-full h-full"><path d="M16 46C16 24 34 16 48 16C48 30 40 48 18 48Z" fill="${color}" fill-opacity="0.25" stroke="${color}" stroke-width="2.5"/><path d="M16 48L36 28" stroke="${color}" stroke-width="2" stroke-linecap="round"/></svg>`,
+        shard: `<svg viewBox="0 0 64 64" class="w-full h-full"><polygon points="32,10 46,28 38,54 24,52 18,26" fill="${color}" fill-opacity="0.25" stroke="${color}" stroke-width="2.5" stroke-linejoin="round"/><polyline points="32,10 30,32 38,54" fill="none" stroke="${color}" stroke-width="1.8"/></svg>`,
+        lantern: `<svg viewBox="0 0 64 64" class="w-full h-full"><rect x="22" y="20" width="20" height="26" rx="4" fill="${color}" fill-opacity="0.22" stroke="${color}" stroke-width="2.5"/><path d="M26 20V15h12v5M32 10v5M24 46h16" stroke="${color}" stroke-width="2.5" stroke-linecap="round"/><circle cx="32" cy="33" r="4" fill="${color}"/></svg>`,
+        compass: `<svg viewBox="0 0 64 64" class="w-full h-full"><circle cx="32" cy="32" r="20" fill="${color}" fill-opacity="0.16" stroke="${color}" stroke-width="2.5"/><polygon points="32,18 37,32 32,46 27,32" fill="${color}" fill-opacity="0.4" stroke="${color}" stroke-width="2"/></svg>`,
+        crescent: `<svg viewBox="0 0 64 64" class="w-full h-full"><path d="M38 14A18 18 0 1 0 50 42A14 14 0 1 1 38 14Z" fill="${color}" fill-opacity="0.28" stroke="${color}" stroke-width="2.5" stroke-linejoin="round"/></svg>`,
+        hourglass: `<svg viewBox="0 0 64 64" class="w-full h-full"><path d="M20 14h24M20 50h24M22 14c0 12 10 14 10 18s-10 6-10 18M42 14c0 12-10 14-10 18s10 6 10 18" fill="${color}" fill-opacity="0.2" stroke="${color}" stroke-width="2.5" stroke-linecap="round"/></svg>`,
+        prism: `<svg viewBox="0 0 64 64" class="w-full h-full"><polygon points="32,12 52,48 12,48" fill="${color}" fill-opacity="0.22" stroke="${color}" stroke-width="2.5" stroke-linejoin="round"/><polygon points="32,22 43,43 21,43" fill="none" stroke="${color}" stroke-width="1.6"/></svg>`,
+        astrolabe: `<svg viewBox="0 0 64 64" class="w-full h-full"><circle cx="32" cy="32" r="20" fill="none" stroke="${color}" stroke-width="2.2"/><ellipse cx="32" cy="32" rx="20" ry="8" transform="rotate(30 32 32)" fill="none" stroke="${color}" stroke-width="2"/><ellipse cx="32" cy="32" rx="20" ry="8" transform="rotate(-30 32 32)" fill="none" stroke="${color}" stroke-width="2"/><circle cx="32" cy="32" r="4" fill="${color}"/></svg>`,
+        vortex: `<svg viewBox="0 0 64 64" class="w-full h-full"><path d="M32 12a20 20 0 1 1-14 34M32 18a14 14 0 1 1-10 24M32 24a8 8 0 1 1-5 14" fill="none" stroke="${color}" stroke-width="2.5" stroke-linecap="round"/><circle cx="32" cy="32" r="3.5" fill="${color}"/></svg>`,
+        crown: `<svg viewBox="0 0 64 64" class="w-full h-full"><polygon points="12,44 16,20 26,32 32,16 38,32 48,20 52,44" fill="${color}" fill-opacity="0.28" stroke="${color}" stroke-width="2.5" stroke-linejoin="round"/><rect x="12" y="44" width="40" height="5" rx="2" fill="${color}"/></svg>`,
+        sunburst: `<svg viewBox="0 0 64 64" class="w-full h-full"><circle cx="32" cy="32" r="11" fill="${color}" fill-opacity="0.35" stroke="${color}" stroke-width="2.5"/><path d="M32 8v8M32 48v8M8 32h8M48 32h8M15 15l6 6M43 43l6 6M49 15l-6 6M21 43l-6 6" stroke="${color}" stroke-width="2.5" stroke-linecap="round"/></svg>`,
+        phoenix: `<svg viewBox="0 0 64 64" class="w-full h-full"><path d="M32 14C24 22 12 22 10 32c8 0 14 4 16 10-4 2-6 6-4 10 6-2 10-6 10-12 0 6 4 10 10 12 2-4 0-8-4-10 2-6 8-10 16-10-2-10-14-10-22-18Z" fill="${color}" fill-opacity="0.26" stroke="${color}" stroke-width="2.2" stroke-linejoin="round"/></svg>`,
+        scythe: `<svg viewBox="0 0 64 64" class="w-full h-full"><path d="M18 52L44 14M44 14C30 12 18 18 14 28c8-4 18-4 26 0" fill="${color}" fill-opacity="0.25" stroke="${color}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+        seraph: `<svg viewBox="0 0 64 64" class="w-full h-full"><circle cx="32" cy="32" r="9" fill="${color}" fill-opacity="0.3" stroke="${color}" stroke-width="2.2"/><path d="M23 32C14 26 10 18 12 12c6 4 11 10 13 16M41 32c9-6 13-14 11-20-6 4-11 10-13 16M24 38c-8 4-12 10-10 16 6-2 10-7 12-12M40 38c8 4 12 10 10 16-6-2-10-7-12-12" fill="${color}" fill-opacity="0.2" stroke="${color}" stroke-width="2"/></svg>`,
+        abyssal: `<svg viewBox="0 0 64 64" class="w-full h-full"><polygon points="32,8 52,24 44,52 20,52 12,24" fill="${color}" fill-opacity="0.22" stroke="${color}" stroke-width="2.5"/><circle cx="32" cy="32" r="9" fill="none" stroke="${color}" stroke-width="2.2"/><circle cx="32" cy="32" r="3" fill="${color}"/></svg>`,
+        galaxy: `<svg viewBox="0 0 64 64" class="w-full h-full"><ellipse cx="32" cy="32" rx="24" ry="10" transform="rotate(-28 32 32)" fill="${color}" fill-opacity="0.2" stroke="${color}" stroke-width="2.4"/><circle cx="32" cy="32" r="6" fill="${color}"/><circle cx="16" cy="22" r="2" fill="${color}"/><circle cx="48" cy="42" r="2" fill="${color}"/></svg>`,
+        monolith: `<svg viewBox="0 0 64 64" class="w-full h-full"><polygon points="32,8 44,20 40,54 24,54 20,20" fill="${color}" fill-opacity="0.28" stroke="${color}" stroke-width="2.5"/><line x1="32" y1="18" x2="32" y2="46" stroke="${color}" stroke-width="2"/><circle cx="32" cy="28" r="3" fill="${color}"/></svg>`,
+        halo: `<svg viewBox="0 0 64 64" class="w-full h-full"><circle cx="32" cy="32" r="18" fill="none" stroke="${color}" stroke-width="3"/><polygon points="32,10 36,28 54,32 36,36 32,54 28,36 10,32 28,28" fill="${color}" fill-opacity="0.32" stroke="${color}" stroke-width="2"/></svg>`,
+        singularity: `<svg viewBox="0 0 64 64" class="w-full h-full"><circle cx="32" cy="32" r="11" fill="#05070f" stroke="${color}" stroke-width="3"/><ellipse cx="32" cy="32" rx="26" ry="7" transform="rotate(-20 32 32)" fill="none" stroke="${color}" stroke-width="2.4"/><path d="M14 20c8-6 28-6 36 0M14 44c8 6 28 6 36 0" fill="none" stroke="${color}" stroke-width="1.6" stroke-dasharray="3 3"/></svg>`,
+        genesis: `<svg viewBox="0 0 64 64" class="w-full h-full"><polygon points="32,6 54,19 54,45 32,58 10,45 10,19" fill="${color}" fill-opacity="0.2" stroke="${color}" stroke-width="2.4"/><polygon points="32,14 46,32 32,50 18,32" fill="${color}" fill-opacity="0.35" stroke="${color}" stroke-width="2"/><circle cx="32" cy="32" r="5" fill="#fff"/></svg>`,
+        paradox: `<svg viewBox="0 0 64 64" class="w-full h-full"><path d="M18 32c0-8 10-8 14 0s14 8 14 0-10-8-14 0-14 8-14 0Z" fill="none" stroke="${color}" stroke-width="3.2"/><circle cx="32" cy="32" r="22" fill="none" stroke="${color}" stroke-width="1.8" stroke-dasharray="4 4"/><polygon points="32,10 35,20 32,17 29,20" fill="${color}"/><polygon points="32,54 35,44 32,47 29,44" fill="${color}"/></svg>`
+      };
+      return icons[shape] || icons.spark;
+    }
+
+    // 24 Unique Relics (3 per Rarity Tier)
+    const ITEMS = [
+      // Common (1 in 2)
+      { id: 'c_pebble',   name: 'Moonlit Pebble',     rarity: 'common',    shape: 'pebble',      desc: 'A smooth river stone bathed in pale lunar light.' },
+      { id: 'c_spark',    name: 'Drifting Wisp',      rarity: 'common',    shape: 'spark',       desc: 'A faint ember lingering from a passing shooting star.' },
+      { id: 'c_feather',  name: 'Dusk Owl Feather',   rarity: 'common',    shape: 'feather',     desc: 'Shed silently in twilight forests.' },
+
+      // Uncommon (1 in 5)
+      { id: 'u_leaf',     name: 'Starlight Fern',     rarity: 'uncommon',  shape: 'leaf',        desc: 'Bioluminescent foliage that hums softly at midnight.' },
+      { id: 'u_shard',    name: 'Quartz Splinter',    rarity: 'uncommon',  shape: 'shard',       desc: 'Refracts faint aurora hues when held aloft.' },
+      { id: 'u_lantern',  name: 'Mist Lantern',       rarity: 'uncommon',  shape: 'lantern',     desc: 'Guides travelers through astral fog.' },
+
+      // Rare (1 in 15)
+      { id: 'r_compass',  name: 'Wayfinder Compass',  rarity: 'rare',      shape: 'compass',     desc: 'Its needle points toward distant constellations.' },
+      { id: 'r_crescent', name: 'Silver Crescent',    rarity: 'rare',      shape: 'crescent',    desc: 'Forged from cold meteoric silver.' },
+      { id: 'r_hourglass',name: 'Sands of Twilight',  rarity: 'rare',      shape: 'hourglass',   desc: 'Granules of stardust drift upward inside.' },
+
+      // Epic (1 in 50)
+      { id: 'e_prism',    name: 'Nebula Prism',       rarity: 'epic',      shape: 'prism',       desc: 'Splits starlight into unseen cosmic spectrums.' },
+      { id: 'e_astrolabe',name: 'Astral Astrolabe',   rarity: 'epic',      shape: 'astrolabe',   desc: 'Maps the trajectories of wandering comets.' },
+      { id: 'e_vortex',   name: 'Void Spire Conch',   rarity: 'epic',      shape: 'vortex',      desc: 'Echoes with the resonant hum of deep space.' },
+
+      // Legendary (1 in 250)
+      { id: 'l_crown',    name: 'Sovereign Diadem',   rarity: 'legendary', shape: 'crown',       desc: 'Worn by ancient monarchs of the Zenith Realm.' },
+      { id: 'l_sunburst', name: 'Solstice Core',      rarity: 'legendary', shape: 'sunburst',    desc: 'Radiates the perpetual warmth of a captured dwarf star.' },
+      { id: 'l_phoenix',  name: 'Cinderwing Crest',   rarity: 'legendary', shape: 'phoenix',     desc: 'Reborn in blinding golden flame every millennium.' },
+
+      // Mythic (1 in 1,500)
+      { id: 'm_scythe',   name: 'Eclipse Reaper',     rarity: 'mythic',    shape: 'scythe',      desc: 'Carves rifts between shadow and starlight.' },
+      { id: 'm_seraph',   name: 'Seraphic Pinion',    rarity: 'mythic',    shape: 'seraph',      desc: 'A six-winged relic pulsing with transcendent resonance.' },
+      { id: 'm_abyssal',  name: 'Abyssal Oculus',     rarity: 'mythic',    shape: 'abyssal',     desc: 'Gazes directly into the heart of the cosmic ocean.' },
+
+      // Celestial (1 in 10,000)
+      { id: 'x_galaxy',   name: 'Andromeda Tear',     rarity: 'celestial', shape: 'galaxy',      desc: 'An entire miniature spiral galaxy suspended in crystal.' },
+      { id: 'x_monolith', name: 'Eternity Obelisk',   rarity: 'celestial', shape: 'monolith',    desc: 'Inscribed with the primordial laws of creation.' },
+      { id: 'x_halo',     name: 'Aureole of Dawn',    rarity: 'celestial', shape: 'halo',        desc: 'Crowns its bearer in blinding celestial radiance.' },
+
+      // Secret (1 in 50,000)
+      { id: 's_singular', name: 'Event Horizon',      rarity: 'secret',    shape: 'singularity', desc: 'A tethered black hole bending space, time, and fate itself.' },
+      { id: 's_genesis',  name: 'Genesis Heart',      rarity: 'secret',    shape: 'genesis',     desc: 'The first spark ignited before the birth of the cosmos.' },
+      { id: 's_paradox',  name: 'Chronos Paradox',    rarity: 'secret',    shape: 'paradox',     desc: 'Exists simultaneously across every timeline and probability.' }
+    ];
+
+    const ITEM_MAP = Object.fromEntries(ITEMS.map(i => [i.id, i]));
+
+    // ==========================================
+    // 2. PROCEDURAL WEB AUDIO ENGINE
+    // ==========================================
+    class SoundEngine {
+      constructor() {
+        this.ctx = null;
+        this.enabled = true;
+      }
+
+      init() {
+        if (!this.ctx) {
+          const AudioCtx = window.AudioContext || window.webkitAudioContext;
+          if (AudioCtx) this.ctx = new AudioCtx();
+        }
+        if (this.ctx && this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+      }
+
+      playTone(freq, type = 'sine', duration = 0.15, gainVal = 0.08, delay = 0) {
+        if (!this.enabled) return;
+        this.init();
+        if (!this.ctx) return;
+
+        const now = this.ctx.currentTime + delay;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, now);
+
+        gain.gain.setValueAtTime(0.001, now);
+        gain.gain.exponentialRampToValueAtTime(gainVal, now + 0.015);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+
+        osc.start(now);
+        osc.stop(now + duration + 0.02);
+      }
+
+      playRollTick() {
+        this.playTone(320 + Math.random() * 140, 'triangle', 0.08, 0.04);
+      }
+
+      playPull(rarityRank) {
+        if (!this.enabled) return;
+        if (rarityRank <= 2) {
+          this.playTone(440, 'sine', 0.14, 0.06);
+        } else if (rarityRank === 3) {
+          this.playTone(523.25, 'triangle', 0.18, 0.08, 0);
+          this.playTone(659.25, 'triangle', 0.22, 0.08, 0.06);
+        } else if (rarityRank === 4) {
+          [523.25, 659.25, 783.99].forEach((f, i) => this.playTone(f, 'triangle', 0.25, 0.09, i * 0.06));
+        } else if (rarityRank === 5) {
+          [440, 554.37, 659.25, 880].forEach((f, i) => this.playTone(f, 'sine', 0.35, 0.11, i * 0.07));
+        } else {
+          // Mythic / Celestial / Secret Fanfare
+          [523.25, 659.25, 783.99, 1046.5, 1318.5].forEach((f, i) => {
+            this.playTone(f, 'sine', 0.55, 0.13, i * 0.075);
+            this.playTone(f * 0.5, 'triangle', 0.6, 0.08, i * 0.075);
+          });
+        }
+      }
+
+      playUpgrade() {
+        this.playTone(587.33, 'sine', 0.15, 0.08, 0);
+        this.playTone(880, 'sine', 0.25, 0.09, 0.08);
+      }
+
+      playSalvage() {
+        this.playTone(720, 'triangle', 0.1, 0.06, 0);
+        this.playTone(960, 'triangle', 0.16, 0.07, 0.05);
+      }
+    }
+
+    const sfx = new SoundEngine();
+
+    // ==========================================
+    // 3. GAME STATE & PERSISTENCE
+    // ==========================================
+    const STORAGE_KEY = 'astral_relic_rng_save_v1';
+
+    const DEFAULT_STATE = {
+      totalRolls: 0,
+      stardust: 50,
+      bestPullId: null,
+      inventory: {},     // { itemId: count }
+      discovered: {},    // { itemId: true }
+      locked: {},        // { itemId: true }
+      upgrades: {
+        luckLevel: 0,    // +0.15x base luck per level
+        multiLevel: 0,   // +2 multi-roll count per level (base 10)
+        dustLevel: 0     // +15% salvage stardust yield per level
+      },
+      charmOwned: false, // Permanent +25% multiplicative luck
+      potionEndsAt: 0,   // Timestamp when 2x luck potion expires
+      history: []        // Recent pulls [{ itemId, rollNum, timestamp }]
+    };
+
+    let state = loadState();
+    let isRolling = false;
+    let autoRollTimer = null;
+    let activeTab = 'inventory';
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return structuredClone(DEFAULT_STATE);
+        const parsed = JSON.parse(raw);
+        return {
+          ...structuredClone(DEFAULT_STATE),
+          ...parsed,
+          upgrades: { ...DEFAULT_STATE.upgrades, ...(parsed.upgrades || {}) }
+        };
+      } catch (e) {
+        return structuredClone(DEFAULT_STATE);
+      }
+    }
+
+    function saveState() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      } catch (e) {
+        // Ignore quota errors
+      }
+    }
+
+    // ==========================================
+    // 4. LUCK & PROBABILITY ENGINE
+    // ==========================================
+    function getCurrentLuck() {
+      let base = 1 + (state.upgrades.luckLevel * 0.15);
+      if (state.charmOwned) base *= 1.25;
+      if (Date.now() < state.potionEndsAt) base *= 2.0;
+      return Number(base.toFixed(2));
+    }
+
+    function getMultiRollCount() {
+      return 10 + (state.upgrades.multiLevel * 2);
+    }
+
+    function getDustMultiplier() {
+      return 1 + (state.upgrades.dustLevel * 0.15);
+    }
+
+    function getItemSalvageValue(itemId) {
+      const item = ITEM_MAP[itemId];
+      const rarity = RARITY_MAP[item.rarity];
+      return Math.max(1, Math.round(rarity.dust * getDustMultiplier()));
+    }
+
+    /**
+     * Rolls a single item using luck-scaled inverse-denominator probabilities.
+     * Higher rarities scale directly with Luck, while Common absorbs the remainder.
+     */
+    function rollSingleItem() {
+      const luck = getCurrentLuck();
+      const nonCommon = RARITIES.filter(r => r.id !== 'common');
+
+      // Calculate luck-adjusted probabilities for Uncommon -> Secret
+      let cumulative = 0;
+      const roll = Math.random();
+
+      // Check from rarest to uncommon so rare thresholds stay crisp
+      const orderedRare = [...nonCommon].reverse();
+      let chosenRarity = RARITY_MAP['common'];
+
+      for (const r of orderedRare) {
+        // Cap individual tier probability reasonably if luck gets super high
+        const prob = Math.min(0.45, (1 / r.denom) * luck);
+        cumulative += prob;
+        if (roll < cumulative) {
+          chosenRarity = r;
+          break;
+        }
+      }
+
+      const pool = ITEMS.filter(i => i.rarity === chosenRarity.id);
+      const picked = pool[Math.floor(Math.random() * pool.length)];
+      return picked;
+    }
+
+    // ==========================================
+    // 5. ROLL EXECUTION & ANIMATIONS
+    // ==========================================
+    function triggerRareEffects(rarity) {
+      if (rarity.rank >= 5) {
+        const flash = document.getElementById('screen-flash');
+        flash.style.backgroundColor = rarity.color;
+        flash.classList.remove('flash-active');
+        void flash.offsetWidth;
+        flash.classList.add('flash-active');
+      }
+      if (rarity.rank >= 6) {
+        const wrapper = document.getElementById('app-wrapper');
+        wrapper.classList.remove('shake-effect');
+        void wrapper.offsetWidth;
+        wrapper.classList.add('shake-effect');
+      }
+    }
+
+    function recordPulls(pulledItems) {
+      let bestNewItem = null;
+
+      pulledItems.forEach(item => {
+        state.totalRolls += 1;
+        state.inventory[item.id] = (state.inventory[item.id] || 0) + 1;
+        state.discovered[item.id] = true;
+
+        // Track best pull ever
+        const itemRank = RARITY_MAP[item.rarity].rank;
+        const currentBestRank = state.bestPullId ? RARITY_MAP[ITEM_MAP[state.bestPullId].rarity].rank : 0;
+        if (itemRank > currentBestRank) {
+          state.bestPullId = item.id;
+          bestNewItem = item;
+        }
+
+        state.history.unshift({
+          itemId: item.id,
+          rollNum: state.totalRolls
+        });
+      });
+
+      if (state.history.length > 40) {
+        state.history = state.history.slice(0, 40);
+      }
+
+      if (bestNewItem) {
+        showToast(`New Record Pull: ${bestNewItem.name} (${RARITY_MAP[bestNewItem.rarity].name})!`, 'legendary');
+      }
+
+      saveState();
+    }
+
+    async function performRoll(count = 1) {
+      if (isRolling) return;
+      isRolling = true;
+      updateRollButtonsState();
+
+      const skipAnim = document.getElementById('chk-skip-anim').checked || autoRollTimer !== null;
+      const idleEl = document.getElementById('stage-idle');
+      const singleEl = document.getElementById('stage-single');
+      const multiEl = document.getElementById('stage-multi');
+      const statusText = document.getElementById('altar-status-text');
+
+      idleEl.classList.add('hidden');
+
+      // Anticipation shuffle if animation is enabled
+      if (!skipAnim) {
+        statusText.textContent = count === 1 ? 'Channeling starlight...' : `Summoning ${count} astral relics...`;
+        singleEl.classList.remove('hidden');
+        multiEl.classList.add('hidden');
+
+        const ticks = count === 1 ? 7 : 9;
+        for (let t = 0; t < ticks; t++) {
+          const previewItem = ITEMS[Math.floor(Math.random() * ITEMS.length)];
+          const pRarity = RARITY_MAP[previewItem.rarity];
+          sfx.playRollTick();
+          singleEl.innerHTML = `
+            <div class="w-full p-5 rounded-2xl border border-slate-700/80 bg-slate-900/80 flex flex-col items-center text-center opacity-80 scale-95 transition">
+              <div class="text-[11px] font-mono uppercase tracking-widest text-slate-400 mb-2">Aligning Fate...</div>
+              <div class="w-20 h-20 my-2 opacity-75">${getRelicSVG(previewItem.shape, pRarity.color)}</div>
+              <div class="font-display font-bold text-base text-slate-300">${previewItem.name}</div>
+            </div>
+          `;
+          await new Promise(r => setTimeout(r, 55));
+        }
+      }
+
+      // Execute actual RNG rolls
+      const results = [];
+      for (let i = 0; i < count; i++) {
+        results.push(rollSingleItem());
+      }
+
+      recordPulls(results);
+
+      // Find highest rarity in this batch
+      let topItem = results[0];
+      results.forEach(item => {
+        if (RARITY_MAP[item.rarity].rank > RARITY_MAP[topItem.rarity].rank) {
+          topItem = item;
+        }
+      });
+      const topRarity = RARITY_MAP[topItem.rarity];
+
+      sfx.playPull(topRarity.rank);
+      triggerRareEffects(topRarity);
+
+      // Render Reveal
+      if (count === 1) {
+        multiEl.classList.add('hidden');
+        singleEl.classList.remove('hidden');
+        const item = results[0];
+        const r = RARITY_MAP[item.rarity];
+        statusText.innerHTML = `Summoned <span style="color:${r.color}" class="font-bold">${item.name}</span>!`;
+
+        singleEl.innerHTML = `
+          <div class="w-full p-5 sm:p-6 rounded-2xl border-2 rarity-${r.id} rarity-border bg-slate-950/90 flex flex-col items-center text-center animate-reveal relative overflow-hidden">
+            <div class="absolute inset-0 pointer-events-none opacity-25" style="background: radial-gradient(circle at center, ${r.color}, transparent 70%);"></div>
+            <span class="px-3 py-0.5 rounded-full text-[11px] font-mono font-bold uppercase tracking-wider mb-2" style="background:${r.bg}; color:${r.color}; border:1px solid ${r.border}">
+              ${r.name} • 1 in ${r.denom.toLocaleString()}
+            </span>
+            <div class="relative w-24 h-24 sm:w-28 sm:h-28 my-2 flex items-center justify-center">
+              ${r.rank >= 4 ? `<div class="absolute inset-0 rounded-full aura-ring" style="border: 2px solid ${r.color}"></div>` : ''}
+              <div class="w-20 h-20 sm:w-24 sm:h-24 animate-float">${getRelicSVG(item.shape, r.color)}</div>
+            </div>
+            <h3 class="font-display text-xl sm:text-2xl font-bold text-white mt-1">${item.name}</h3>
+            <p class="text-xs text-slate-300/90 mt-1.5 max-w-xs">${item.desc}</p>
+            <div class="mt-3 text-[11px] font-mono text-slate-400">
+              Owned: <span class="text-white font-bold">${state.inventory[item.id]}</span> • Salvage: <span class="text-amber-300">+${getItemSalvageValue(item.id)} ✦</span>
+            </div>
+          </div>
+        `;
+      } else {
+        singleEl.classList.add('hidden');
+        multiEl.classList.remove('hidden');
+        statusText.innerHTML = `Batch Complete — Best Pull: <span style="color:${topRarity.color}" class="font-bold">${topItem.name} (${topRarity.name})</span>`;
+
+        // Sort multi-pull display slightly or keep chronological with glow highlights
+        multiEl.innerHTML = results.map((item, idx) => {
+          const r = RARITY_MAP[item.rarity];
+          const isHigh = r.rank >= 4;
+          return `
+            <div style="animation-delay: ${skipAnim ? 0 : idx * 30}ms; border-color: ${r.border}; background: linear-gradient(160deg, rgba(15,23,42,0.92), ${r.bg});"
+                 class="p-2.5 rounded-xl border flex flex-col items-center text-center animate-reveal relative ${isHigh ? `rarity-${r.id} rarity-border` : ''}">
+              <span class="text-[9px] font-mono uppercase font-bold px-1.5 py-0.2 rounded" style="color:${r.color}; background: rgba(0,0,0,0.45)">
+                ${r.name}
+              </span>
+              <div class="w-11 h-11 my-1.5">${getRelicSVG(item.shape, r.color)}</div>
+              <div class="text-[11px] font-semibold text-white leading-tight line-clamp-1">${item.name}</div>
+              <div class="text-[9px] font-mono text-slate-400 mt-0.5">1 in ${r.denom.toLocaleString()}</div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      updateAllUI();
+
+      // Check Auto-Roll Stop Condition (Mythic = rank 6 or higher)
+      if (autoRollTimer !== null && document.getElementById('chk-stop-rare').checked) {
+        const hitMythicPlus = results.find(i => RARITY_MAP[i.rarity].rank >= 6);
+        if (hitMythicPlus) {
+          stopAutoRoll();
+          const r = RARITY_MAP[hitMythicPlus.rarity];
+          showToast(`Auto-Roll paused! You pulled ${hitMythicPlus.name} (${r.name})!`, 'mythic');
+        }
+      }
+
+      isRolling = false;
+      updateRollButtonsState();
+    }
+
+    // ==========================================
+    // 6. AUTO-ROLL CONTROLLER
+    // ==========================================
+    function toggleAutoRoll() {
+      if (autoRollTimer !== null) {
+        stopAutoRoll();
+      } else {
+        startAutoRoll();
+      }
+    }
+
+    function startAutoRoll() {
+      if (autoRollTimer !== null) return;
+      const speed = parseInt(document.getElementById('select-auto-speed').value, 10) || 450;
+      document.getElementById('auto-dot').className = 'w-2 h-2 rounded-full bg-emerald-400 animate-ping';
+      document.getElementById('auto-label').textContent = 'Stop';
+      document.getElementById('btn-auto-roll').classList.add('border-emerald-500/70', 'bg-emerald-950/50', 'text-emerald-200');
+
+      performRoll(1);
+      autoRollTimer = setInterval(() => {
+        if (!isRolling) {
+          performRoll(1);
+        }
+      }, speed);
+    }
+
+    function stopAutoRoll() {
+      if (autoRollTimer !== null) {
+        clearInterval(autoRollTimer);
+        autoRollTimer = null;
+      }
+      document.getElementById('auto-dot').className = 'w-2 h-2 rounded-full bg-slate-500';
+      document.getElementById('auto-label').textContent = 'Auto';
+      document.getElementById('btn-auto-roll').classList.remove('border-emerald-500/70', 'bg-emerald-950/50', 'text-emerald-200');
+    }
+
+    function updateRollButtonsState() {
+      const disabled = isRolling && autoRollTimer === null;
+      document.getElementById('btn-roll-one').disabled = disabled;
+      document.getElementById('btn-roll-multi').disabled = disabled;
+    }
+
+    // ==========================================
+    // 7. INVENTORY, CODEX & SHOP LOGIC
+    // ==========================================
+    function toggleLockItem(itemId) {
+      if (state.locked[itemId]) {
+        delete state.locked[itemId];
+        showToast(`Unlocked ${ITEM_MAP[itemId].name}`);
+      } else {
+        state.locked[itemId] = true;
+        showToast(`Locked ${ITEM_MAP[itemId].name} (Protected from salvage)`);
+      }
+      saveState();
+      renderInventory();
+      updateDupePreview();
+    }
+
+    function salvageSingle(itemId) {
+      if (state.locked[itemId]) {
+        showToast('Unlock this relic before salvaging.', 'warn');
+        return;
+      }
+      const count = state.inventory[itemId] || 0;
+      if (count <= 0) return;
+
+      const value = getItemSalvageValue(itemId);
+      state.inventory[itemId] = count - 1;
+      if (state.inventory[itemId] <= 0) delete state.inventory[itemId];
+      state.stardust += value;
+
+      sfx.playSalvage();
+      saveState();
+      updateAllUI();
+      showToast(`Salvaged 1x ${ITEM_MAP[itemId].name} for +${value} ✦`);
+    }
+
+    function getUnlockedDuplicatesTotal() {
+      let totalDust = 0;
+      let totalItems = 0;
+      for (const [itemId, qty] of Object.entries(state.inventory)) {
+        if (!state.locked[itemId] && qty > 1) {
+          const dupes = qty - 1;
+          totalItems += dupes;
+          totalDust += dupes * getItemSalvageValue(itemId);
+        }
+      }
+      return { totalDust, totalItems };
+    }
+
+    function salvageAllDuplicates() {
+      const { totalDust, totalItems } = getUnlockedDuplicatesTotal();
+      if (totalItems === 0) {
+        showToast('No unlocked duplicate relics to salvage.');
+        return;
+      }
+
+      for (const [itemId, qty] of Object.entries(state.inventory)) {
+        if (!state.locked[itemId] && qty > 1) {
+          state.inventory[itemId] = 1;
+        }
+      }
+
+      state.stardust += totalDust;
+      sfx.playSalvage();
+      saveState();
+      updateAllUI();
+      showToast(`Salvaged ${totalItems} duplicate relics for +${totalDust.toLocaleString()} ✦!`);
+    }
+
+    // Shop Upgrades & Crafting Definitions
+    function getUpgradeConfigs() {
+      const u = state.upgrades;
+      return [
+        {
+          id: 'luckLevel',
+          title: 'Astral Resonance',
+          desc: 'Permanently increases base Luck multiplier by +0.15x per rank.',
+          level: u.luckLevel,
+          maxLevel: 30,
+          cost: Math.round(75 * Math.pow(1.48, u.luckLevel)),
+          statText: `Current: +${(u.luckLevel * 0.15).toFixed(2)}x Base Luck`,
+          icon: '🍀'
+        },
+        {
+          id: 'multiLevel',
+          title: 'Starfall Array',
+          desc: 'Increases Multi-Roll batch size by +2 summons per rank.',
+          level: u.multiLevel,
+          maxLevel: 10,
+          cost: Math.round(150 * Math.pow(1.75, u.multiLevel)),
+          statText: `Current: ${getMultiRollCount()}x Multi-Roll`,
+          icon: '🌌'
+        },
+        {
+          id: 'dustLevel',
+          title: 'Celestial Alchemist',
+          desc: 'Increases Stardust gained from salvaging relics by +15% per rank.',
+          level: u.dustLevel,
+          maxLevel: 20,
+          cost: Math.round(100 * Math.pow(1.52, u.dustLevel)),
+          statText: `Current: ${Math.round(getDustMultiplier() * 100)}% Salvage Yield`,
+          icon: '✦'
+        }
+      ];
+    }
+
+    function buyUpgrade(upgradeId) {
+      const cfg = getUpgradeConfigs().find(c => c.id === upgradeId);
+      if (!cfg || cfg.level >= cfg.maxLevel) return;
+      if (state.stardust < cfg.cost) {
+        showToast('Not enough Stardust!', 'warn');
+        return;
+      }
+
+      state.stardust -= cfg.cost;
+      state.upgrades[upgradeId] += 1;
+      sfx.playUpgrade();
+      saveState();
+      updateAllUI();
+      showToast(`Upgraded ${cfg.title} to Rank ${state.upgrades[upgradeId]}!`);
+    }
+
+    function craftItem(type) {
+      if (type === 'potion') {
+        const cost = 120;
+        if (state.stardust < cost) {
+          showToast('Requires 120 ✦ Stardust!', 'warn');
+          return;
+        }
+        state.stardust -= cost;
+        const now = Date.now();
+        const baseTime = state.potionEndsAt > now ? state.potionEndsAt : now;
+        state.potionEndsAt = baseTime + 60 * 1000; // +60 seconds
+        sfx.playUpgrade();
+        saveState();
+        updateAllUI();
+        showToast('Activated 2.0x Luck Potion (+60s)!');
+      } else if (type === 'charm') {
+        const cost = 1500;
+        if (state.charmOwned) return;
+        if (state.stardust < cost) {
+          showToast('Requires 1,500 ✦ Stardust!', 'warn');
+          return;
+        }
+        state.stardust -= cost;
+        state.charmOwned = true;
+        sfx.playUpgrade();
+        saveState();
+        updateAllUI();
+        showToast('Crafted Permanent Astral Charm (+25% Luck)!');
+      } else if (type === 'fated_box') {
+        const cost = 600;
+        if (state.stardust < cost) {
+          showToast('Requires 600 ✦ Stardust!', 'warn');
+          return;
+        }
+        state.stardust -= cost;
+        // Guaranteed Epic or higher single pull
+        const highPool = ITEMS.filter(i => RARITY_MAP[i.rarity].rank >= 4);
+        const weights = highPool.map(i => 1 / RARITY_MAP[i.rarity].denom);
+        const totalW = weights.reduce((a, b) => a + b, 0);
+        let r = Math.random() * totalW;
+        let chosen = highPool[0];
+        for (let idx = 0; idx < highPool.length; idx++) {
+          r -= weights[idx];
+          if (r <= 0) {
+            chosen = highPool[idx];
+            break;
+          }
+        }
+        recordPulls([chosen]);
+        const rarity = RARITY_MAP[chosen.rarity];
+        sfx.playPull(rarity.rank);
+        triggerRareEffects(rarity);
+        saveState();
+        updateAllUI();
+        showToast(`Fated Reliquary opened: ${chosen.name} (${rarity.name})!`, 'legendary');
+      }
+    }
+
+    // ==========================================
+    // 8. UI RENDERING FUNCTIONS
+    // ==========================================
+    function updateAllUI() {
+      // Top Stats
+      document.getElementById('stat-total-rolls').textContent = state.totalRolls.toLocaleString();
+      document.getElementById('stat-luck').textContent = `${getCurrentLuck().toFixed(2)}x`;
+      document.getElementById('stat-stardust').textContent = state.stardust.toLocaleString();
+      document.getElementById('multi-count-label').textContent = getMultiRollCount();
+
+      const bestEl = document.getElementById('stat-best-pull');
+      if (state.bestPullId && ITEM_MAP[state.bestPullId]) {
+        const bItem = ITEM_MAP[state.bestPullId];
+        const bRar = RARITY_MAP[bItem.rarity];
+        bestEl.textContent = `${bItem.name} (1/${bRar.denom.toLocaleString()})`;
+        bestEl.style.color = bRar.color;
+      } else {
+        bestEl.textContent = 'None yet';
+        bestEl.style.color = '#94a3b8';
+      }
+
+      // Charm Badge
+      const charmBadge = document.getElementById('charm-badge');
+      if (state.charmOwned) charmBadge.classList.remove('hidden');
+      else charmBadge.classList.add('hidden');
+
+      // Tab Counters
+      const totalOwned = Object.values(state.inventory).reduce((a, b) => a + b, 0);
+      const discoveredCount = Object.keys(state.discovered).length;
+      document.getElementById('tab-inv-count').textContent = totalOwned.toLocaleString();
+      document.getElementById('tab-codex-count').textContent = `${discoveredCount}/${ITEMS.length}`;
+
+      updateDupePreview();
+      renderHistory();
+      renderInventory();
+      renderCodex();
+      renderShop();
+    }
+
+    function updateDupePreview() {
+      const { totalDust } = getUnlockedDuplicatesTotal();
+      document.getElementById('dupe-value-preview').textContent = `(+${totalDust.toLocaleString()} ✦)`;
+    }
+
+    function renderHistory() {
+      const listEl = document.getElementById('roll-history-list');
+      if (state.history.length === 0) {
+        listEl.innerHTML = `<div class="text-center text-xs text-slate-500 py-12">No summons recorded yet. Roll to begin!</div>`;
+        return;
+      }
+
+      listEl.innerHTML = state.history.map(entry => {
+        const item = ITEM_MAP[entry.itemId];
+        if (!item) return '';
+        const r = RARITY_MAP[item.rarity];
+        return `
+          <div class="flex items-center justify-between gap-2.5 px-3 py-2 rounded-xl bg-slate-900/75 border border-slate-800/90 hover:border-slate-700 transition">
+            <div class="flex items-center gap-2.5 min-w-0">
+              <div class="w-7 h-7 flex-shrink-0">${getRelicSVG(item.shape, r.color)}</div>
+              <div class="min-w-0">
+                <div class="text-xs font-semibold text-white truncate">${item.name}</div>
+                <div class="text-[10px] font-mono" style="color:${r.color}">${r.name} • 1 in ${r.denom.toLocaleString()}</div>
+              </div>
+            </div>
+            <span class="text-[10px] font-mono text-slate-500 flex-shrink-0">#${entry.rollNum}</span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderInventory() {
+      const grid = document.getElementById('inventory-grid');
+      const filterRarity = document.getElementById('inv-filter-rarity').value;
+      const sortBy = document.getElementById('inv-sort').value;
+
+      let ownedEntries = Object.entries(state.inventory)
+        .filter(([id, qty]) => qty > 0 && ITEM_MAP[id])
+        .map(([id, qty]) => ({
+          item: ITEM_MAP[id],
+          rarity: RARITY_MAP[ITEM_MAP[id].rarity],
+          qty
+        }));
+
+      if (filterRarity !== 'all') {
+        ownedEntries = ownedEntries.filter(e => e.rarity.id === filterRarity);
+      }
+
+      ownedEntries.sort((a, b) => {
+        if (sortBy === 'rarity-desc') return b.rarity.rank - a.rarity.rank || b.qty - a.qty;
+        if (sortBy === 'rarity-asc') return a.rarity.rank - b.rarity.rank || b.qty - a.qty;
+        if (sortBy === 'qty-desc') return b.qty - a.qty || b.rarity.rank - a.rarity.rank;
+        return 0;
+      });
+
+      if (ownedEntries.length === 0) {
+        grid.innerHTML = `
+          <div class="col-span-full text-center py-10 text-xs text-slate-400 bg-slate-900/40 rounded-xl border border-dashed border-slate-800">
+            No relics match this filter yet. Keep rolling to expand your vault!
+          </div>
+        `;
+        return;
+      }
+
+      grid.innerHTML = ownedEntries.map(({ item, rarity, qty }) => {
+        const isLocked = !!state.locked[item.id];
+        const isBest = state.bestPullId === item.id;
+        const salvageVal = getItemSalvageValue(item.id);
+
+        return `
+          <div class="glass-card rounded-xl p-3 flex flex-col justify-between relative group" style="border-color: ${rarity.border}">
+            <!-- Top Row: Quantity & Lock -->
+            <div class="flex items-center justify-between gap-1">
+              <span class="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-slate-950/80 text-slate-200 border border-slate-800">
+                x${qty.toLocaleString()}
+              </span>
+              <div class="flex items-center gap-1">
+                ${isBest ? `<span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40" title="Best Pull Ever">👑</span>` : ''}
+                <button onclick="toggleLockItem('${item.id}')" class="p-1 rounded-lg text-xs transition ${isLocked ? 'bg-amber-500/20 text-amber-300' : 'bg-slate-800/80 text-slate-400 hover:text-white'}" title="${isLocked ? 'Unlock Relic' : 'Lock Relic'}">
+                  ${isLocked ? '🔒' : '🔓'}
+                </button>
+              </div>
+            </div>
+
+            <!-- Icon & Title -->
+            <div class="my-2.5 flex flex-col items-center text-center">
+              <div class="w-14 h-14 mb-1.5 transition-transform group-hover:scale-110">${getRelicSVG(item.shape, rarity.color)}</div>
+              <div class="text-xs font-bold text-white line-clamp-1">${item.name}</div>
+              <div class="text-[10px] font-mono mt-0.5" style="color:${rarity.color}">${rarity.name}</div>
+            </div>
+
+            <!-- Salvage 1 Action -->
+            <button onclick="salvageSingle('${item.id}')" ${isLocked ? 'disabled' : ''}
+              class="w-full py-1.5 px-2 rounded-lg text-[10px] font-mono font-semibold transition flex items-center justify-center gap-1
+              ${isLocked ? 'bg-slate-900/50 text-slate-600 cursor-not-allowed' : 'bg-slate-800/90 hover:bg-amber-500/20 text-slate-300 hover:text-amber-300 border border-slate-700/70 hover:border-amber-500/40 cursor-pointer'}">
+              <span>Salvage 1</span>
+              <span class="text-amber-400">+${salvageVal}✦</span>
+            </button>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderCodex() {
+      const grid = document.getElementById('codex-grid');
+      const discoveredCount = Object.keys(state.discovered).length;
+      const pct = Math.round((discoveredCount / ITEMS.length) * 100);
+
+      document.getElementById('codex-progress-bar').style.width = `${pct}%`;
+      document.getElementById('codex-progress-pct').textContent = `${pct}% (${discoveredCount}/${ITEMS.length})`;
+
+      grid.innerHTML = ITEMS.map(item => {
+        const rarity = RARITY_MAP[item.rarity];
+        const isFound = !!state.discovered[item.id];
+
+        return `
+          <div class="rounded-xl p-3 border flex flex-col items-center text-center transition ${isFound ? 'glass-card' : 'bg-slate-950/60 border-slate-800/70'}"
+               style="${isFound ? `border-color:${rarity.border}` : ''}">
+            <span class="text-[9px] font-mono uppercase px-2 py-0.5 rounded-full mb-2"
+                  style="background:${isFound ? rarity.bg : 'rgba(30,41,59,0.5)'}; color:${isFound ? rarity.color : '#64748b'}">
+              ${rarity.name} • 1/${rarity.denom.toLocaleString()}
+            </span>
+
+            <div class="w-14 h-14 my-1 ${isFound ? '' : 'silhouette-icon'}">
+              ${getRelicSVG(item.shape, isFound ? rarity.color : '#64748b')}
+            </div>
+
+            <div class="text-xs font-bold mt-1 ${isFound ? 'text-white' : 'text-slate-500'}">
+              ${isFound ? item.name : '??? Undiscovered'}
+            </div>
+            <p class="text-[10px] text-slate-400 mt-1 line-clamp-2 leading-snug">
+              ${isFound ? item.desc : 'Continue summoning to reveal this astral relic.'}
+            </p>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderShop() {
+      // Permanent Upgrades
+      const upgGrid = document.getElementById('upgrades-grid');
+      upgGrid.innerHTML = getUpgradeConfigs().map(cfg => {
+        const isMax = cfg.level >= cfg.maxLevel;
+        const canAfford = state.stardust >= cfg.cost;
+        return `
+          <div class="glass-card rounded-xl p-4 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between">
+                <span class="text-xl">${cfg.icon}</span>
+                <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                  Rank ${cfg.level}/${cfg.maxLevel}
+                </span>
+              </div>
+              <h5 class="font-bold text-sm text-white mt-2">${cfg.title}</h5>
+              <p class="text-xs text-slate-400 mt-1 leading-relaxed">${cfg.desc}</p>
+              <div class="text-[11px] font-mono text-emerald-400 mt-2">${cfg.statText}</div>
+            </div>
+
+            <button onclick="buyUpgrade('${cfg.id}')" ${isMax || !canAfford ? 'disabled' : ''}
+              class="mt-4 w-full py-2.5 px-3 rounded-xl text-xs font-bold font-mono transition cursor-pointer
+              ${isMax ? 'bg-slate-800 text-slate-500 cursor-not-allowed' : canAfford ? 'btn-cosmic text-white' : 'bg-slate-800/80 text-slate-500 border border-slate-700 cursor-not-allowed'}">
+              ${isMax ? 'MAX RANK REACHED' : `Upgrade • ${cfg.cost.toLocaleString()} ✦`}
+            </button>
+          </div>
+        `;
+      }).join('');
+
+      // Alchemy & Crafting
+      const craftGrid = document.getElementById('crafting-grid');
+      const potionActive = Date.now() < state.potionEndsAt;
+      craftGrid.innerHTML = `
+        <!-- Luck Potion -->
+        <div class="glass-card rounded-xl p-4 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between">
+              <span class="text-xl">🧪</span>
+              <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                ${potionActive ? 'ACTIVE' : '60s Boost'}
+              </span>
+            </div>
+            <h5 class="font-bold text-sm text-white mt-2">Elixir of Starlight (2x Luck)</h5>
+            <p class="text-xs text-slate-400 mt-1 leading-relaxed">Doubles your total Luck multiplier for 60 seconds. Stacking extends duration.</p>
+          </div>
+          <button onclick="craftItem('potion')" ${state.stardust < 120 ? 'disabled' : ''}
+            class="mt-4 w-full py-2.5 px-3 rounded-xl text-xs font-bold font-mono transition cursor-pointer
+            ${state.stardust >= 120 ? 'btn-celestial text-white' : 'bg-slate-800/80 text-slate-500 border border-slate-700 cursor-not-allowed'}">
+            Brew Potion • 120 ✦
+          </button>
+        </div>
+
+        <!-- Astral Charm -->
+        <div class="glass-card rounded-xl p-4 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between">
+              <span class="text-xl">🧿</span>
+              <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                ${state.charmOwned ? 'CRAFTED' : 'Permanent'}
+              </span>
+            </div>
+            <h5 class="font-bold text-sm text-white mt-2">Astral Lucky Charm</h5>
+            <p class="text-xs text-slate-400 mt-1 leading-relaxed">A permanent talisman that multiplies your overall Luck by +25% forever.</p>
+          </div>
+          <button onclick="craftItem('charm')" ${state.charmOwned || state.stardust < 1500 ? 'disabled' : ''}
+            class="mt-4 w-full py-2.5 px-3 rounded-xl text-xs font-bold font-mono transition cursor-pointer
+            ${state.charmOwned ? 'bg-slate-800 text-amber-300/70 cursor-not-allowed' : state.stardust >= 1500 ? 'btn-cosmic text-white' : 'bg-slate-800/80 text-slate-500 border border-slate-700 cursor-not-allowed'}">
+            ${state.charmOwned ? 'TALISMAN EQUIPPED' : 'Craft Charm • 1,500 ✦'}
+          </button>
+        </div>
+
+        <!-- Fated Reliquary -->
+        <div class="glass-card rounded-xl p-4 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between">
+              <span class="text-xl">🎁</span>
+              <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                Guaranteed Epic+
+              </span>
+            </div>
+            <h5 class="font-bold text-sm text-white mt-2">Fated Reliquary</h5>
+            <p class="text-xs text-slate-400 mt-1 leading-relaxed">Transmute Stardust directly into a guaranteed Epic, Legendary, Mythic, or higher relic.</p>
+          </div>
+          <button onclick="craftItem('fated_box')" ${state.stardust < 600 ? 'disabled' : ''}
+            class="mt-4 w-full py-2.5 px-3 rounded-xl text-xs font-bold font-mono transition cursor-pointer
+            ${state.stardust >= 600 ? 'btn-cosmic text-white' : 'bg-slate-800/80 text-slate-500 border border-slate-700 cursor-not-allowed'}">
+            Forge Reliquary • 600 ✦
+          </button>
+        </div>
+      `;
+    }
+
+    function renderOddsModal() {
+      const luck = getCurrentLuck();
+      document.getElementById('modal-luck-display').textContent = `${luck.toFixed(2)}x`;
+      const body = document.getElementById('odds-table-body');
+
+      // Calculate effective percentages
+      const nonCommon = RARITIES.filter(r => r.id !== 'common');
+      let nonCommonSum = 0;
+      const effectiveMap = {};
+
+      nonCommon.forEach(r => {
+        const effProb = Math.min(0.45, (1 / r.denom) * luck);
+        effectiveMap[r.id] = effProb;
+        nonCommonSum += effProb;
+      });
+      effectiveMap['common'] = Math.max(0.01, 1 - nonCommonSum);
+
+      body.innerHTML = RARITIES.map(r => {
+        const effPct = (effectiveMap[r.id] * 100);
+        const effDenom = Math.max(1, Math.round(1 / effectiveMap[r.id]));
+        const tierItems = ITEMS.filter(i => i.rarity === r.id).map(i => state.discovered[i.id] ? i.name : '???').join(', ');
+
+        return `
+          <div class="p-3 rounded-xl bg-slate-900/80 border flex flex-col sm:flex-row sm:items-center justify-between gap-2" style="border-color:${r.border}">
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="font-bold text-sm" style="color:${r.color}">${r.name}</span>
+                <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-slate-950 text-slate-300">Base: 1 in ${r.denom.toLocaleString()}</span>
+              </div>
+              <div class="text-[11px] text-slate-400 mt-1">Relics: ${tierItems}</div>
+            </div>
+            <div class="text-left sm:text-right flex-shrink-0">
+              <div class="font-mono text-xs font-bold text-white">Effective: ~1 in ${effDenom.toLocaleString()}</div>
+              <div class="font-mono text-[11px] text-emerald-400">${effPct < 0.01 ? effPct.toFixed(4) : effPct.toFixed(2)}% chance</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // ==========================================
+    // 9. TOAST NOTIFICATIONS & TIMERS
+    // ==========================================
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toast-container');
+      const el = document.createElement('div');
+      const styles = {
+        info: 'bg-slate-900/95 border-indigo-500/50 text-slate-100',
+        warn: 'bg-amber-950/95 border-amber-500/60 text-amber-200',
+        legendary: 'bg-slate-900/95 border-amber-400 text-amber-200 shadow-[0_0_20px_rgba(251,191,36,0.3)]',
+        mythic: 'bg-slate-900/95 border-rose-400 text-rose-200 shadow-[0_0_24px_rgba(251,113,133,0.4)]'
+      };
+      el.className = `px-3.5 py-2.5 rounded-xl border text-xs font-medium shadow-xl backdrop-blur-md transition-all duration-300 transform translate-y-2 opacity-0 ${styles[type] || styles.info}`;
+      el.textContent = message;
+      container.appendChild(el);
+
+      requestAnimationFrame(() => {
+        el.classList.remove('translate-y-2', 'opacity-0');
+      });
+
+      setTimeout(() => {
+        el.classList.add('opacity-0', 'translate-y-2');
+        setTimeout(() => el.remove(), 300);
+      }, 3200);
+    }
+
+    // Potion Countdown Ticker
+    setInterval(() => {
+      const now = Date.now();
+      const badge = document.getElementById('potion-badge');
+      const timerText = document.getElementById('potion-timer-text');
+
+      if (state.potionEndsAt > now) {
+        const secs = Math.ceil((state.potionEndsAt - now) / 1000);
+        badge.classList.remove('hidden');
+        timerText.classList.remove('hidden');
+        timerText.textContent = `🍀 Luck Potion: ${secs}s`;
+        document.getElementById('stat-luck').textContent = `${getCurrentLuck().toFixed(2)}x`;
+      } else if (!badge.classList.contains('hidden')) {
+        badge.classList.add('hidden');
+        timerText.classList.add('hidden');
+        updateAllUI();
+      }
+    }, 500);
+
+    // ==========================================
+    // 10. COSMIC PARTICLE CANVAS BACKGROUND
+    // ==========================================
+    function initCosmicCanvas() {
+      const canvas = document.getElementById('cosmic-canvas');
+      const ctx = canvas.getContext('2d');
+      let stars = [];
+      let shootingStars = [];
+
+      function resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        const count = Math.min(140, Math.floor((canvas.width * canvas.height) / 11000));
+        stars = Array.from({ length: count }, () => ({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height,
+          r: Math.random() * 1.6 + 0.3,
+          alpha: Math.random() * 0.7 + 0.2,
+          twinkleSpeed: Math.random() * 0.02 + 0.005,
+          driftY: -(Math.random() * 0.15 + 0.03),
+          hue: Math.random() > 0.7 ? '#a5f3fc' : (Math.random() > 0.5 ? '#c7d2fe' : '#ffffff')
+        }));
+      }
+
+      window.addEventListener('resize', resize);
+      resize();
+
+      function animate() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Draw twinkling drifting stars
+        for (const s of stars) {
+          s.alpha += s.twinkleSpeed;
+          if (s.alpha > 0.95 || s.alpha < 0.15) s.twinkleSpeed *= -1;
+          s.y += s.driftY;
+          if (s.y < 0) s.y = canvas.height;
+
+          ctx.beginPath();
+          ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+          ctx.fillStyle = s.hue;
+          ctx.globalAlpha = Math.max(0.1, Math.min(1, s.alpha));
+          ctx.fill();
+        }
+
+        // Occasional shooting star
+        if (Math.random() < 0.006 && shootingStars.length < 2) {
+          shootingStars.push({
+            x: Math.random() * canvas.width * 0.8,
+            y: Math.random() * canvas.height * 0.4,
+            len: Math.random() * 80 + 50,
+            speed: Math.random() * 9 + 7,
+            alpha: 1
+          });
+        }
+
+        for (let i = shootingStars.length - 1; i >= 0; i--) {
+          const st = shootingStars[i];
+          st.x += st.speed;
+          st.y += st.speed * 0.45;
+          st.alpha -= 0.022;
+
+          if (st.alpha <= 0) {
+            shootingStars.splice(i, 1);
+            continue;
+          }
+
+          const grad = ctx.createLinearGradient(st.x, st.y, st.x - st.len, st.y - st.len * 0.45);
+          grad.addColorStop(0, `rgba(224, 242, 254, ${st.alpha})`);
+          grad.addColorStop(1, 'rgba(224, 242, 254, 0)');
+
+          ctx.globalAlpha = 1;
+          ctx.strokeStyle = grad;
+          ctx.lineWidth = 1.6;
+          ctx.beginPath();
+          ctx.moveTo(st.x, st.y);
+          ctx.lineTo(st.x - st.len, st.y - st.len * 0.45);
+          ctx.stroke();
+        }
+
+        ctx.globalAlpha = 1;
+        requestAnimationFrame(animate);
+      }
+
+      animate();
+    }
+
+    // ==========================================
+    // 11. EVENT LISTENERS & INITIALIZATION
+    // ==========================================
+    window.onload = function () {
+      initCosmicCanvas();
+      updateAllUI();
+
+      // Roll Actions
+      document.getElementById('btn-roll-one').addEventListener('click', () => performRoll(1));
+      document.getElementById('btn-roll-multi').addEventListener('click', () => performRoll(getMultiRollCount()));
+      document.getElementById('btn-auto-roll').addEventListener('click', toggleAutoRoll);
+
+      // Auto Speed live update
+      document.getElementById('select-auto-speed').addEventListener('change', () => {
+        if (autoRollTimer !== null) {
+          stopAutoRoll();
+          startAutoRoll();
+        }
+      });
+
+      // Spacebar shortcut for Single Roll
+      window.addEventListener('keydown', (e) => {
+        if (e.code === 'Space' && document.activeElement.tagName !== 'BUTTON' && document.activeElement.tagName !== 'SELECT') {
+          e.preventDefault();
+          if (!isRolling && autoRollTimer === null) performRoll(1);
+        }
+      });
+
+      // Tab Switching
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          activeTab = btn.dataset.tab;
+          document.querySelectorAll('.tab-btn').forEach(b => {
+            b.classList.remove('bg-indigo-600', 'text-white', 'shadow-lg', 'shadow-indigo-600/25');
+            b.classList.add('bg-slate-800/70', 'text-slate-300');
+          });
+          btn.classList.add('bg-indigo-600', 'text-white', 'shadow-lg', 'shadow-indigo-600/25');
+          btn.classList.remove('bg-slate-800/70', 'text-slate-300');
+
+          document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
+          document.getElementById(`panel-${activeTab}`).classList.remove('hidden');
+        });
+      });
+
+      // Inventory Filter & Sort
+      document.getElementById('inv-filter-rarity').addEventListener('change', renderInventory);
+      document.getElementById('inv-sort').addEventListener('change', renderInventory);
+      document.getElementById('btn-salvage-dupes').addEventListener('click', salvageAllDuplicates);
+
+      // Sound Toggle
+      const toggleSound = () => {
+        sfx.enabled = !sfx.enabled;
+        document.querySelectorAll('.sound-icon').forEach(el => el.textContent = sfx.enabled ? '🔊' : '🔇');
+        showToast(sfx.enabled ? 'Audio Effects Enabled' : 'Audio Effects Muted');
+      };
+      document.getElementById('btn-sound-desktop').addEventListener('click', toggleSound);
+      document.getElementById('btn-sound-mobile').addEventListener('click', toggleSound);
+
+      // Odds Modal
+      const openOdds = () => {
+        renderOddsModal();
+        const m = document.getElementById('modal-odds');
+        m.classList.remove('hidden');
+        m.classList.add('flex');
+      };
+      document.getElementById('btn-odds-desktop').addEventListener('click', openOdds);
+      document.getElementById('btn-odds-mobile').addEventListener('click', openOdds);
+      document.getElementById('btn-close-odds').addEventListener('click', () => {
+        const m = document.getElementById('modal-odds');
+        m.classList.add('hidden');
+        m.classList.remove('flex');
+      });
+
+      // Reset Progress Modal
+      document.getElementById('btn-reset-save').addEventListener('click', () => {
+        const m = document.getElementById('modal-reset');
+        m.classList.remove('hidden');
+        m.classList.add('flex');
+      });
+      document.getElementById('btn-cancel-reset').addEventListener('click', () => {
+        const m = document.getElementById('modal-reset');
+        m.classList.add('hidden');
+        m.classList.remove('flex');
+      });
+      document.getElementById('btn-confirm-reset').addEventListener('click', () => {
+        stopAutoRoll();
+        localStorage.removeItem(STORAGE_KEY);
+        state = structuredClone(DEFAULT_STATE);
+        saveState();
+        updateAllUI();
+        document.getElementById('stage-single').classList.add('hidden');
+        document.getElementById('stage-multi').classList.add('hidden');
+        document.getElementById('stage-idle').classList.remove('hidden');
+        const m = document.getElementById('modal-reset');
+        m.classList.add('hidden');
+        m.classList.remove('flex');
+        showToast('All progress has been reset.');
+      });
+    };
+  </script>
+</body>
+</html>
